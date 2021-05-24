@@ -21,7 +21,7 @@ object PrettyPrintDoc {
       case _ => List(this)
     }
 
-    def <>(doc: Doc): Doc = SeqDoc(this.seqParts ++ doc.seqParts)
+    def <>(doc: Doc): Doc = SeqDoc(this.seqParts() ++ doc.seqParts())
 
 
     def :<|>(other: () => Doc): Doc = Alternative(this, other)

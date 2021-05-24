@@ -1,11 +1,8 @@
 package prettyprint
 
 import com.github.peterzeller.prettyprint.PrettyPrintDoc._
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.funsuite.AnyFunSuite
-import org.scalatest.matchers.should.Matchers
 
-class PrettyTests extends AnyFunSuite with Matchers {
+class PrettyTests extends munit.FunSuite {
 
 
   test("simpleNesting") {
