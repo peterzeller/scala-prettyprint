@@ -3,119 +3,93 @@ package com.github.peterzeller.prettyprint
 import scala.annotation.tailrec
 import scala.language.implicitConversions
 
-/**
-  * Code for pretty printing a document.
+/** Code for pretty printing a document.
   *
   * See http://homepages.inf.ed.ac.uk/wadler/papers/prettier/prettier.pdf
   */
-object PrettyPrintDoc {
+object PrettyPrintDoc:
 
-
-  sealed abstract class Doc {
+  sealed abstract class Doc:
 
     override def toString: String = this.prettyStr(120)
 
-    def seqParts(): List[Doc] = this match {
+    def seqParts(): List[Doc] = this match
       case SeqDoc(parts) => parts.flatMap(_.seqParts())
-      case NilDoc() => List()
-      case _ => List(this)
-    }
+      case NilDoc()      => List()
+      case _             => List(this)
 
     def <>(doc: Doc): Doc = SeqDoc(this.seqParts() ++ doc.seqParts())
 
-
     def :<|>(other: () => Doc): Doc = Alternative(this, other)
 
-    def flatten: Doc = this match {
-      case SeqDoc(parts) => SeqDoc(parts.map(_.flatten))
-      case NilDoc() => this
-      case TextDoc(text) => this
-      case NewlineDoc(true) => " "
-      case NewlineDoc(false) => ""
-      case NestedDoc(nesting, doc) => NestedDoc(nesting, doc.flatten)
+    def flatten: Doc = this match
+      case SeqDoc(parts)             => SeqDoc(parts.map(_.flatten))
+      case NilDoc()                  => this
+      case TextDoc(text)             => this
+      case NewlineDoc(true)          => " "
+      case NewlineDoc(false)         => ""
+      case NestedDoc(nesting, doc)   => NestedDoc(nesting, doc.flatten)
       case Alternative(first, other) => first.flatten
-    }
 
     private def best(w: Int, k: Int) = be(w, k, List((0, this)))
 
-    private def be(w: Int, k: Int, l: List[(Int, Doc)]): LayoutDoc = l match {
+    private def be(w: Int, k: Int, l: List[(Int, Doc)]): LayoutDoc = l match
       case Nil => LayoutNil()
-      case (i, x) :: z => x match {
-        case NilDoc() =>
-          be(w, k, z)
-        case SeqDoc(parts) =>
-          be(w, k, parts.map(p => (i, p)) ++ z)
-        case NestedDoc(nesting, doc) =>
-          be(w, k, (i + nesting, doc) :: z)
-        case TextDoc(text) =>
-          LayoutText(text, () => be(w, k + text.length, z))
-        case NewlineDoc(_) =>
-          LayoutLine(i, () => be(w, i, z))
-        case Alternative(first, other) =>
-          if (first.width()._1 < (w - k)) {
-            be(w, k, (i, first) :: z)
-          } else {
-            be(w, k, (i, other()) :: z)
-          }
-//          val layoutFirst = be(1000, k, (i, first) :: z)
-//          if (k >= w || layoutFirst.fits(w - k)) {
-//            layoutFirst
-//          } else {
-//            val l: String = layoutFirst.layoutDebug(120)
-//            println(s"does not fit: ${l.length} in $w - $k : ${l.replace("\n", "\\n")}")
-//            be(w, k, (i, other()) :: z)
-//          }
-      }
-    }
+      case (i, x) :: z =>
+        x match
+          case NilDoc() =>
+            be(w, k, z)
+          case SeqDoc(parts) =>
+            be(w, k, parts.map(p => (i, p)) ++ z)
+          case NestedDoc(nesting, doc) =>
+            be(w, k, (i + nesting, doc) :: z)
+          case TextDoc(text) =>
+            LayoutText(text, () => be(w, k + text.length, z))
+          case NewlineDoc(_) =>
+            LayoutLine(i, () => be(w, i, z))
+          case Alternative(first, other) =>
+            if first.width()._1 < (w - k) then be(w, k, (i, first) :: z)
+            else be(w, k, (i, other()) :: z)
 
-    def width(): (Int, Boolean) = {
-      this match {
+    def width(): (Int, Boolean) =
+      this match
         case SeqDoc(parts) =>
           var w = 0
-          for (part <- parts) {
+          for part <- parts do
             val (partw, partbreak) = part.width()
             w += partw
-            if (partbreak) {
-              return (w, true)
-            }
-          }
+            if partbreak then return (w, true)
           (w, false)
         case NilDoc() =>
           (0, false)
         case TextDoc(text) =>
           (text.length, false)
         case NewlineDoc(space) =>
-          (if (space) 1 else 0, true)
+          (if space then 1 else 0, true)
         case NestedDoc(nesting, doc) =>
           doc.width()
         case Alternative(first, other) =>
           first.width()
-      }
-    }
 
     def pretty(w: Int): LayoutDoc = best(w, 0)
 
     def prettyStr(w: Int): String = pretty(w).layout()
-
 
     // Utility functions
 
     def <+>(other: Doc): Doc = this <> text(" ") <> other
 
     def </>(other: Doc): Doc = this <> lineOrSpace <> other
-  }
 
   implicit def text(str: String): Doc = TextDoc(str)
 
-  implicit def list(docs: List[Doc]): SeqDoc = SeqDoc(docs.flatMap(_.seqParts()))
+  implicit def list(docs: List[Doc]): SeqDoc = SeqDoc(
+    docs.flatMap(_.seqParts())
+  )
 
-  def sep(separator: Doc, parts: Iterable[Doc]): Doc = {
-    if (parts.isEmpty) {
-      NilDoc()
-    } else {
-      parts.reduce((l, r) => l <> separator <> r)
-    }
-  }
+  def sep(separator: Doc, parts: Iterable[Doc]): Doc =
+    if parts.isEmpty then NilDoc()
+    else parts.reduce((l, r) => l <> separator <> r)
 
   def line: Doc = NewlineDoc(false)
 
@@ -132,7 +106,9 @@ object PrettyPrintDoc {
     functionCall(name: String, args.toList)
 
   def functionCall(name: String, args: List[Doc]): Doc =
-    group(nested(2, name <> "(" <> line <> sep("," <> lineOrSpace, args) <> ")"))
+    group(
+      nested(2, name <> "(" <> line <> sep("," <> lineOrSpace, args) <> ")")
+    )
 
   case class SeqDoc(parts: List[Doc]) extends Doc
 
@@ -146,29 +122,24 @@ object PrettyPrintDoc {
 
   case class Alternative(first: Doc, other: () => Doc) extends Doc
 
-
-  sealed abstract class LayoutDoc() {
+  sealed abstract class LayoutDoc():
 
     @tailrec
-    final def fits(w: Int): Boolean = {
-      if (w < 0) {
-        return false
-      }
-      this match {
+    final def fits(w: Int): Boolean =
+      if w < 0 then return false
+      this match
         case LayoutNil() =>
           true
         case LayoutText(text, rest) =>
           rest().fits(w - text.length)
         case LayoutLine(indent, rest) =>
           true
-      }
-    }
 
-    def layout(): String = {
+    def layout(): String =
       var doc = this
       val res = new StringBuilder
-      while (true) {
-        doc match {
+      while true do
+        doc match
           case LayoutNil() =>
             return res.toString()
           case LayoutText(text, rest) =>
@@ -178,16 +149,13 @@ object PrettyPrintDoc {
             res.append("\n")
             res.append(" " * indent)
             doc = rest()
-        }
-      }
       res.toString()
-    }
 
-    def layoutDebug(chars: Int): String = {
+    def layoutDebug(chars: Int): String =
       var doc = this
       val res = new StringBuilder
-      while (res.length <= chars) {
-        doc match {
+      while res.length <= chars do
+        doc match
           case LayoutNil() =>
             return res.toString()
           case LayoutText(text, rest) =>
@@ -196,17 +164,10 @@ object PrettyPrintDoc {
           case LayoutLine(indent, rest) =>
             res.append("\\n")
             return res.toString()
-        }
-      }
       res.toString()
-    }
-
-  }
 
   case class LayoutNil() extends LayoutDoc
 
   case class LayoutText(text: String, rest: () => LayoutDoc) extends LayoutDoc
 
   case class LayoutLine(indent: Int, rest: () => LayoutDoc) extends LayoutDoc
-
-}

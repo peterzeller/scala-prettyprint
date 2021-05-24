@@ -1,17 +1,22 @@
 package prettyprint
 
-import com.github.peterzeller.prettyprint.PrettyPrintDoc._
+import com.github.peterzeller.prettyprint.PrettyPrintDoc.*
 
-class PrettyTests extends munit.FunSuite {
-
+class PrettyTests extends munit.FunSuite:
 
   test("simpleNesting") {
 
-    val d: Doc = group("hello(" <> nested(2, line <> sep("," <> lineOrSpace, (0 to 20).map(_.toString))) <> ")")
+    val d: Doc = group(
+      "hello(" <> nested(
+        2,
+        line <> sep("," <> lineOrSpace, (0 to 20).map(_.toString))
+      ) <> ")"
+    )
 
     val s = d.prettyStr(50)
-    assert(s ==
-      """hello(
+    assert(
+      s ==
+        """hello(
         |  0,
         |  1,
         |  2,
@@ -32,19 +37,26 @@ class PrettyTests extends munit.FunSuite {
         |  17,
         |  18,
         |  19,
-        |  20)""".stripMargin)
+        |  20)""".stripMargin
+    )
 
   }
 
   test("group") {
 
-      val d: Doc = group("hello(" <> nested(2, line <> sep("," <> lineOrSpace, (0 to 20).map(_.toString))) <> ")")
+    val d: Doc = group(
+      "hello(" <> nested(
+        2,
+        line <> sep("," <> lineOrSpace, (0 to 20).map(_.toString))
+      ) <> ")"
+    )
 
-      val s = d.prettyStr(120)
-      assert(s == """hello(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)""")
+    val s = d.prettyStr(120)
+    assert(
+      s == """hello(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)"""
+    )
 
-    }
-
+  }
 
   test("Print tree") {
     // example from the Wadler paper
@@ -56,34 +68,27 @@ class PrettyTests extends munit.FunSuite {
       t.text <> nested(t.text.length, showBracket(t.children))
 
     def showBracket(ts: List[Tree]): Doc =
-      if (ts.isEmpty) ""
+      if ts.isEmpty then ""
       else "[" <> nested(1, sep("," <> lineOrSpace, ts.map(showTree))) <> "]"
 
-    val t = tree("aaa",
-      tree("bbbb",
-        tree("ccc"),
-        tree("dd")
-      ),
+    val t = tree(
+      "aaa",
+      tree("bbbb", tree("ccc"), tree("dd")),
       tree("eee"),
-      tree("fff",
-        tree("gg"),
-        tree("hhh"),
-        tree("ii")
-      )
+      tree("fff", tree("gg"), tree("hhh"), tree("ii"))
     )
 
     val d: Doc = showTree(t)
     val s: String = d.prettyStr(30)
 
-    assert(s ==
-      """aaa[bbbb[ccc,
+    assert(
+      s ==
+        """aaa[bbbb[ccc,
         |         dd],
         |    eee,
         |    fff[gg,
         |        hhh,
-        |        ii]]""".stripMargin)
+        |        ii]]""".stripMargin
+    )
 
   }
-
-
-}
